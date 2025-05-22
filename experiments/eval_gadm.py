@@ -1,4 +1,9 @@
-from src.api.app import stream_chat
+from typing import Optional
+
+from langchain_core.messages import HumanMessage
+
+from src.agents import zeno
+from src.api.app import langfuse_handler
 
 print("Starting evaluation...")
 
@@ -12,16 +17,38 @@ print(f"User Persona: {user_persona}")
 print(f"Thread ID: {thread_id}")
 print("\nStreaming chat response:")
 
+
+# Copied over from api.app and truncated irrelevant parts
+def stream_chat(
+    query: str,
+    user_persona: Optional[str] = None,
+    thread_id: Optional[str] = None,
+):
+    config = {
+        "configurable": {
+            "thread_id": thread_id,
+        },
+        "callbacks": [langfuse_handler],
+    }
+    messages = [HumanMessage(content=query)]
+
+    return zeno.stream(
+        {
+            "messages": messages,
+            "user_persona": user_persona,
+        },
+        config=config,
+        stream_mode="updates",
+        subgraphs=False,
+    )
+
+
 # Call stream_chat and iterate through the response
 # Set metadata, session_id, user_id, and tags to None
 for chunk in stream_chat(
     query=query,
     user_persona=user_persona,
     thread_id=thread_id,
-    metadata=None,
-    session_id=None,
-    user_id=None,
-    tags=None,
 ):
     print(chunk, end="")
 
