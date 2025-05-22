@@ -60,10 +60,9 @@ print(f"Fetched dataset {DATASET_NAME} with {len(dataset.items)} items")
 for item in dataset.items:
     print(f"Evaluating item: input=[{item.input}]")
     handler = item.get_langchain_handler(run_name=RUN_NAME)
-    for chunk in stream_chat(
+    list(stream_chat(
         query=item.input,
         user_persona=USER_PERSONA,
         thread_id=ZENO_THREAD_ID,
         langfuse_handler=handler,
-    ):
-        print(chunk, end="")
+    ))
