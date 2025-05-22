@@ -18,7 +18,10 @@ DATASET_NAME = "gadm_location"
 RUN_NAME = "dev_test_002"
 
 
-# Copied over from api.app and truncated irrelevant parts
+# Copied over from api.app because I don't want to mess with Devseed code. It'd be easier if we just
+# refactor the parent method.
+# TODO: perhaps add a langfuse_handler argument to api.app.stream_chat so we don't need to dup this
+# here
 def stream_chat(
     query: str,
     langfuse_handler: CallbackHandler,
