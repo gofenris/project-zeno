@@ -5,24 +5,17 @@ from langchain_core.messages import HumanMessage
 from langfuse import Langfuse
 from langfuse.callback import CallbackHandler
 
-from experiments.eval_gadm_old import THREAD_ID, USER_PERSONA
 from src.agents import zeno
 
 print("Starting evaluation...")
 
 # Define parameters based on test_alerts.sh defaults
-query = "Find disturbance alerts over Lisbon, Portugal for the year 2023"
-user_persona = "researcher"
-thread_id = "alerts"
-
-print(f"Query: {query}")
-print(f"User Persona: {user_persona}")
-print(f"Thread ID: {thread_id}")
-print("\nStreaming chat response:")
+USER_PERSONA = "researcher"
+ZENO_THREAD_ID = "alerts"
 
 # Langfuse Configuration
 DATASET_NAME = "gadm_location"
-RUN_NAME = "dev_test_001"
+RUN_NAME = "dev_test_002"
 
 
 # Copied over from api.app and truncated irrelevant parts
@@ -67,7 +60,7 @@ for item in dataset.items:
     for chunk in stream_chat(
         query=item.input,
         user_persona=USER_PERSONA,
-        thread_id=THREAD_ID,
+        thread_id=ZENO_THREAD_ID,
         langfuse_handler=handler,
     ):
         print(chunk, end="")
