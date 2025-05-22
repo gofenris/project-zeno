@@ -11,11 +11,10 @@ print("Starting evaluation...")
 
 # Define parameters based on test_alerts.sh defaults
 USER_PERSONA = "researcher"
-ZENO_THREAD_ID = "alerts"
 
 # Langfuse Configuration
 DATASET_NAME = "gadm_location"
-RUN_NAME = "dev_test_002"
+RUN_NAME = "dev_test_003"
 
 
 # Copied over from api.app because I don't want to mess with Devseed code. It'd be easier if we just
@@ -60,9 +59,11 @@ print(f"Fetched dataset {DATASET_NAME} with {len(dataset.items)} items")
 for item in dataset.items:
     print(f"Evaluating item: input=[{item.input}]")
     handler = item.get_langchain_handler(run_name=RUN_NAME)
-    list(stream_chat(
-        query=item.input,
-        user_persona=USER_PERSONA,
-        thread_id=ZENO_THREAD_ID,
-        langfuse_handler=handler,
-    ))
+    list(
+        stream_chat(
+            query=item.input,
+            user_persona=USER_PERSONA,
+            thread_id=item.id,
+            langfuse_handler=handler,
+        )
+    )
