@@ -9,7 +9,7 @@ from src.agents import zeno
 
 print("Starting evaluation...")
 
-# Define parameters based on test_alerts.sh defaults
+# I don't know what this does. So just copied over from test_alerts.sh defaults
 USER_PERSONA = "researcher"
 
 # Langfuse Configuration
