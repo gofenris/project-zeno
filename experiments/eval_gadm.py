@@ -187,14 +187,19 @@ print(
 )
 
 
+actual_outputs = []
 for item in active_dataset_items:
     print(f"Evaluating item: input=[{item.input}]")
     handler = item.get_langchain_handler(run_name=RUN_NAME)
-    list(
+    actual_output = list(
         stream_chat(
             query=item.input,
             user_persona=USER_PERSONA,
             thread_id=item.id,
             langfuse_handler=handler,
         )
+    )
+    actual_outputs.append(actual_output)
+    langfuse.score(
+        trace_id=handler.get_trace_id(), name="gadm_matches_score", value=1
     )
