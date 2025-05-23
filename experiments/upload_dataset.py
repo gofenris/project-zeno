@@ -53,25 +53,25 @@ def _parse_and_format_expected_output(
 
 
 def upload_csv(dataset_name, csv_filepath):
-    # Calls insert_langfuse_item over a csv
-    #
-    # Sample CSV:
-    #
-    # text,id,name,type
-    # Show me deforestation trends in Brazil's Amazon rainforest,BRA,Brazil,iso
-    # forest fires indonisia last month,IDN,Indonesia,iso
-    # Compare logging rates between Peru and Columbia over past 5 years,PER; COL,Peru; Colombia,iso; iso
-    #
-    # For a row like:
-    # Compare logging rates between Peru and Columbia over past 5 years,PER; COL,Peru; Colombia,iso; iso
-    # The expected_output will be:
-    # [{"name": "Peru", "gadm_id": "PER"}, {"name": "Colombia", "gadm_id": "COL"}]
-    # For a single entry row like:
-    # Show me deforestation trends in Brazil's Amazon rainforest,BRA,Brazil,iso
-    # The expected_output will be:
-    # [{"name": "Brazil", "gadm_id": "BRA"}]
-    #
-    # The 'type' column is present in the sample CSV but not used for expected_output.
+    """Uploads rows from a CSV file to a Langfuse dataset.
+
+    The CSV file must contain 'text', 'id', and 'name' columns.
+    - 'text': Input query for the Langfuse dataset item.
+    - 'id': Semicolon-separated GADM ID(s).
+    - 'name': Semicolon-separated location name(s), corresponding to the 'id'(s).
+
+    The 'id' and 'name' fields are parsed to create the 'expected_output'
+    for each Langfuse item, formatted as a list of dictionaries:
+    e.g., [{"name": "LocationName", "gadm_id": "GADM_ID"}].
+
+    Example CSV content:
+    text,id,name,type
+    Compare logging rates in Peru and Colombia,PER;COL,Peru;Colombia,iso;iso
+    Fires in Brazil last month,BRA,Brazil,iso
+
+    The 'type' column, if present, is ignored. Rows with missing 'text',
+    'id', or 'name' data are skipped.
+    """
 
     try:
         with open(csv_filepath, mode="r", encoding="utf-8-sig") as file:
