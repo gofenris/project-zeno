@@ -74,7 +74,7 @@ def upload_csv(dataset_name, csv_filepath):
     # The 'type' column is present in the sample CSV but not used for expected_output.
 
     try:
-        with open(csv_filepath, mode="r", encoding="utf-8") as file:
+        with open(csv_filepath, mode="r", encoding="utf-8-sig") as file:
             reader = csv.DictReader(file)
             csv_filename = Path(csv_filepath).name
             for row_number, row in enumerate(reader, 1):
