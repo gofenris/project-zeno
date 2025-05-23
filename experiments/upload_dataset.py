@@ -114,3 +114,9 @@ def upload_csv(dataset_name, csv_filepath):
         print(f"Error: The file {csv_filepath} was not found.")
     except Exception as e:
         print(f"An error occurred: {e}")
+
+
+# Usage:
+#
+# >> create_langfuse_dataset("s2_gadm_0_1")
+# >> upload_csv("s2_gadm_0_1", "experiments/Zeno test dataset(S2 GADM 0-1).csv")
