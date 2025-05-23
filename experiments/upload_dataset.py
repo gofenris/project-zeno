@@ -39,6 +39,13 @@ def upload_csv(dataset_name, csv_filepath):
     # Show me deforestation trends in Brazil's Amazon rainforest,BRA,Brazil,iso
     # forest fires indonisia last month,IDN,Indonesia,iso
     # Compare logging rates between Peru and Columbia over past 5 years,PER; COL,Peru; Colombia,iso; iso
+    #
+    # TODO: expected_output is a list of dicts like so:
+    # Show me deforestation trends in Brazil's Amazon rainforest,BRA,Brazil,iso
+    # [{"name": Brazil, "gadm_id": BRA}]
+    # Compare logging rates between Peru and Columbia over past 5 years,PER; COL,Peru; Colombia,iso; iso
+    # [{"name": Peru, "gadm_id": PER}, {"name": Colombia, "gadm_id": COL}]
+
     try:
         with open(csv_filepath, mode="r", encoding="utf-8") as file:
             reader = csv.DictReader(file)
