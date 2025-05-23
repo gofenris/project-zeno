@@ -159,10 +159,14 @@ langfuse = Langfuse(
 )
 
 dataset = langfuse.get_dataset(DATASET_NAME)
-print(f"Fetched dataset {DATASET_NAME} with {len(dataset.items)} items")
+# Filter for active items
+active_dataset_items = [item for item in dataset.items if item.status == "ACTIVE"]
+print(
+    f"Fetched dataset {DATASET_NAME}. Processing {len(active_dataset_items)} active items."
+)
 
 
-for item in dataset.items:
+for item in active_dataset_items:
     print(f"Evaluating item: input=[{item.input}]")
     handler = item.get_langchain_handler(run_name=RUN_NAME)
     list(
