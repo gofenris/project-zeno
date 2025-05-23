@@ -1,5 +1,6 @@
 import json
 import os
+from collections import Counter
 from dataclasses import dataclass
 from typing import List, Optional
 
@@ -109,6 +110,40 @@ def parse_expected_output(json_str: str) -> List[GadmLocation]:
         )
         results.append(location)
     return results
+
+
+def score_gadm_matches(
+    actual: List[GadmLocation], expected: List[GadmLocation]
+) -> float:
+    """Compare name and gadm_id of each actual and see if they match."""
+    if not expected:
+        # If nothing is expected, score is 1.0 if nothing is actual, else 0.0.
+        return 1.0 if not actual else 0.0
+
+    if not actual:
+        # If something is expected, but nothing is actual, score is 0.0.
+        # This is reached only if expected is not empty.
+        return 0.0
+
+    # Create lists of (name, gadm_id) tuples for comparison
+    actual_tuples = [(loc.name, loc.gadm_id) for loc in actual]
+    expected_tuples = [(loc.name, loc.gadm_id) for loc in expected]
+
+    actual_counts = Counter(actual_tuples)
+    expected_counts = Counter(expected_tuples)
+
+    # Calculate the intersection of the two multisets
+    # The '&' operator for Counters results in a new Counter where counts are min(count_in_actual, count_in_expected)
+    intersection_counts = actual_counts & expected_counts
+
+    # Sum of counts in the intersection gives the total number of matches
+    matches = sum(intersection_counts.values())
+
+    # The denominator is the length of the longer list, to penalize both false positives and false negatives.
+    denominator = max(len(actual), len(expected))
+
+    # Denominator will be > 0 here because empty list cases are handled above.
+    return float(matches) / denominator
 
 
 langfuse = Langfuse(
