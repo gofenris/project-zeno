@@ -26,3 +26,15 @@ def insert_langfuse_item(dataset_name, input, expected_output, filename):
 
 def as_expected_gadm_output(location_name, gadm_id):
     return {"name": location_name, "gadm_id": gadm_id}
+
+
+def upload_csv(dataset_name, csv_filepath):
+    # Calls insert_langfuse_item over a csv
+    #
+    # Sample CSV:
+    #
+    # text,id,name,type
+    # Show me deforestation trends in Brazil's Amazon rainforest,BRA,Brazil,iso
+    # forest fires indonisia last month,IDN,Indonesia,iso
+    # Compare logging rates between Peru and Columbia over past 5 years,PER; COL,Peru; Colombia,iso; iso
+    pass
