@@ -79,6 +79,7 @@ def stream_chat(
     )
 
 
+# TODO: Refactor to process LangGraph object output from `stream_chat` instead of a JSON string.
 def parse_gadm_from_json(json_str: str) -> List[GadmLocation]:
     """Extracts GADM location data from agent JSON output.
 
