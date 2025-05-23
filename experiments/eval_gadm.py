@@ -58,14 +58,18 @@ def stream_chat(
 
 
 def parse_gadm_from_json(json_str: str) -> List[GadmLocation]:
-    # Reference command
-    # $ jq '.messages[] | select(.type == "tool" and .name == "location-tool") | .artifact[].properties | {name, gadm_id, gadm_level, admin_level}' output.json
-    #
-    # Usage example:
-    # with open("output.json", 'r') as f:
-    #   json_data = f.read()
-    # parsed_output = parse_gadm_from_json(json_data)
-    # print(parsed_output)
+    """Extracts GADM location data from agent JSON output.
+
+    Filters for "location-tool" messages and extracts GADM details
+    (name, ID, level, admin_level) from their artifact properties.
+    Equivalent to jq: '.messages[] | select(.type=="tool" and .name=="location-tool") | .artifact[].properties | {name, gadm_id, gadm_level, admin_level}'
+
+    Args:
+        json_str: The JSON string output from the agent.
+
+    Returns:
+        A list of GadmLocation objects.
+    """
 
     data = json.loads(json_str)
     results: List[GadmLocation] = []
