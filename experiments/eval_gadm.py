@@ -1,11 +1,22 @@
+import json
 import os
-from typing import Optional
+from dataclasses import dataclass
+from typing import List, Optional
 
 from langchain_core.messages import HumanMessage
 from langfuse import Langfuse
 from langfuse.callback import CallbackHandler
 
 from src.agents import zeno
+
+
+@dataclass
+class GadmLocation:
+    name: str
+    gadm_id: str
+    gadm_level: Optional[int] = None
+    admin_level: Optional[int] = None
+
 
 print("Starting evaluation...")
 
@@ -44,6 +55,35 @@ def stream_chat(
         stream_mode="updates",
         subgraphs=False,
     )
+
+
+def parse_gadm_from_json(json_str: str) -> List[GadmLocation]:
+    # Reference command
+    # $ jq '.messages[] | select(.type == "tool" and .name == "location-tool") | .artifact[].properties | {name, gadm_id, gadm_level, admin_level}' output.json
+    #
+    # Usage example:
+    # with open("output.json", 'r') as f:
+    #   json_data = f.read()
+    # parsed_output = parse_gadm_from_json(json_data)
+    # print(parsed_output)
+
+    data = json.loads(json_str)
+    results: List[GadmLocation] = []
+    for message in data.get("messages", []):
+        if (
+            message.get("type") == "tool"
+            and message.get("name") == "location-tool"
+        ):
+            for artifact_item in message.get("artifact", []):
+                properties = artifact_item.get("properties", {})
+                location_info = GadmLocation(
+                    name=properties.get("name"),
+                    gadm_id=properties.get("gadm_id"),
+                    gadm_level=properties.get("gadm_level"),
+                    admin_level=properties.get("admin_level"),
+                )
+                results.append(location_info)
+    return results
 
 
 langfuse = Langfuse(
