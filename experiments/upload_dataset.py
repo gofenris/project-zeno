@@ -120,3 +120,6 @@ def upload_csv(dataset_name, csv_filepath):
 #
 # >> create_langfuse_dataset("s2_gadm_0_1")
 # >> upload_csv("s2_gadm_0_1", "experiments/Zeno test dataset(S2 GADM 0-1).csv")
+#
+# >> create_langfuse_dataset("s2_gadm_2")
+# >> upload_csv("s2_gadm_2", "experiments/Zeno test dataset(S2 GADM 2).csv")
