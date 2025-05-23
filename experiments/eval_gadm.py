@@ -201,4 +201,4 @@ for item in active_dataset_items:
         langfuse_handler=handler,
     )
     actual_outputs.append(actual_output)
-    langfuse.score(trace_id=handler.get_trace_id(), name="fake_score", value=1)
+    # langfuse.score(trace_id=handler.get_trace_id(), name="fake_score", value=1)
