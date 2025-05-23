@@ -1,6 +1,7 @@
 import os
 import csv
 from pathlib import Path
+from typing import List, Dict
 
 from langfuse import Langfuse
 
@@ -30,6 +31,27 @@ def as_expected_gadm_output(location_name, gadm_id):
     return {"name": location_name, "gadm_id": gadm_id}
 
 
+def _parse_and_format_expected_output(
+    gadm_ids_str: str, location_names_str: str
+) -> List[Dict[str, str]]:
+    """
+    Parses semicolon-separated GADM ID and location name strings
+    and formats them into a list of dictionaries.
+    Assumes corresponding IDs and names.
+    """
+    gadm_ids = [gid.strip() for gid in gadm_ids_str.split(";") if gid.strip()]
+    location_names = [
+        name.strip() for name in location_names_str.split(";") if name.strip()
+    ]
+
+    expected_output = []
+    # zip will stop when the shorter of gadm_ids or location_names is exhausted.
+    # If lists are not of the same length, some data might be silently ignored.
+    for gadm_id, location_name in zip(gadm_ids, location_names):
+        expected_output.append({"name": location_name, "gadm_id": gadm_id})
+    return expected_output
+
+
 def upload_csv(dataset_name, csv_filepath):
     # Calls insert_langfuse_item over a csv
     #
@@ -40,33 +62,45 @@ def upload_csv(dataset_name, csv_filepath):
     # forest fires indonisia last month,IDN,Indonesia,iso
     # Compare logging rates between Peru and Columbia over past 5 years,PER; COL,Peru; Colombia,iso; iso
     #
-    # TODO: expected_output is a list of dicts like so:
-    # Show me deforestation trends in Brazil's Amazon rainforest,BRA,Brazil,iso
-    # [{"name": Brazil, "gadm_id": BRA}]
+    # For a row like:
     # Compare logging rates between Peru and Columbia over past 5 years,PER; COL,Peru; Colombia,iso; iso
-    # [{"name": Peru, "gadm_id": PER}, {"name": Colombia, "gadm_id": COL}]
+    # The expected_output will be:
+    # [{"name": "Peru", "gadm_id": "PER"}, {"name": "Colombia", "gadm_id": "COL"}]
+    # For a single entry row like:
+    # Show me deforestation trends in Brazil's Amazon rainforest,BRA,Brazil,iso
+    # The expected_output will be:
+    # [{"name": "Brazil", "gadm_id": "BRA"}]
+    #
+    # The 'type' column is present in the sample CSV but not used for expected_output.
 
     try:
         with open(csv_filepath, mode="r", encoding="utf-8") as file:
             reader = csv.DictReader(file)
             csv_filename = Path(csv_filepath).name
-            for row in reader:
+            for row_number, row in enumerate(reader, 1):
                 input_text = row.get("text")
-                gadm_id = row.get("id")
-                location_name = row.get("name")
+                gadm_ids_str = row.get("id")
+                location_names_str = row.get("name")
                 # The 'type' column is present in the sample CSV but not used here.
 
                 if (
                     input_text is None
-                    or gadm_id is None
-                    or location_name is None
+                    or gadm_ids_str is None
+                    or location_names_str is None
                 ):
-                    print(f"Skipping row due to missing data: {row}")
+                    print(
+                        f"Skipping row {row_number} due to missing essential data (text, id, or name): {row}"
+                    )
                     continue
 
-                expected_output = as_expected_gadm_output(
-                    location_name, gadm_id
+                expected_output = _parse_and_format_expected_output(
+                    gadm_ids_str, location_names_str
                 )
+
+                # If gadm_ids_str or location_names_str were empty or just ";",
+                # expected_output will be an empty list [], which is acceptable.
+                # If counts of IDs and names differ after splitting, zip will pair them
+                # up to the length of the shorter list.
                 insert_langfuse_item(
                     dataset_name=dataset_name,
                     input=input_text,
@@ -74,7 +108,7 @@ def upload_csv(dataset_name, csv_filepath):
                     filename=csv_filename,
                 )
         print(
-            f"Successfully uploaded data from {csv_filename} to dataset {dataset_name}"
+            f"Successfully processed data from {csv_filename} for dataset {dataset_name}"
         )
     except FileNotFoundError:
         print(f"Error: The file {csv_filepath} was not found.")
