@@ -1,7 +1,9 @@
 import json
 import os
+import subprocess
 from collections import Counter
 from dataclasses import dataclass
+from datetime import datetime
 from typing import List, Optional
 
 from langchain_core.messages import HumanMessage
@@ -19,14 +21,31 @@ class GadmLocation:
     admin_level: Optional[int] = None
 
 
-print("Starting evaluation...")
-
 # I don't know what this does. So just copied over from test_alerts.sh defaults
 USER_PERSONA = "researcher"
 
+
+def get_git_short_hash() -> str:
+    """Get the short git hash of the current commit."""
+    try:
+        return (
+            subprocess.check_output(["git", "rev-parse", "--short", "HEAD"])
+            .decode("ascii")
+            .strip()
+        )
+    except Exception:
+        return "nogit"
+
+
 # Langfuse Configuration
 DATASET_NAME = "gadm_location"
-RUN_NAME = "dev_test_003"
+# Generate a human-readable run name with timestamp and git short hash
+current_date_str = datetime.now().strftime("%Y%m%d")
+git_short_hash = get_git_short_hash()
+RUN_NAME = f"eval_{current_date_str}_{git_short_hash}"
+
+
+print(f"Starting evaluation [run name: {RUN_NAME}] ...")
 
 
 # Copied over from api.app because I don't want to mess with Devseed code. It'd be easier if we just
@@ -160,7 +179,9 @@ langfuse = Langfuse(
 
 dataset = langfuse.get_dataset(DATASET_NAME)
 # Filter for active items
-active_dataset_items = [item for item in dataset.items if item.status == "ACTIVE"]
+active_dataset_items = [
+    item for item in dataset.items if item.status == "ACTIVE"
+]
 print(
     f"Fetched dataset {DATASET_NAME}. Processing {len(active_dataset_items)} active items."
 )
