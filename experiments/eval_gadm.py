@@ -66,14 +66,16 @@ def stream_chat(
     }
     messages = [HumanMessage(content=query)]
 
-    return zeno.stream(
-        {
-            "messages": messages,
-            "user_persona": user_persona,
-        },
-        config=config,
-        stream_mode="updates",
-        subgraphs=False,
+    return list(
+        zeno.stream(
+            {
+                "messages": messages,
+                "user_persona": user_persona,
+            },
+            config=config,
+            stream_mode="updates",
+            subgraphs=False,
+        )
     )
 
 
@@ -191,15 +193,11 @@ actual_outputs = []
 for item in active_dataset_items:
     print(f"Evaluating item: input=[{item.input}]")
     handler = item.get_langchain_handler(run_name=RUN_NAME)
-    actual_output = list(
-        stream_chat(
-            query=item.input,
-            user_persona=USER_PERSONA,
-            thread_id=item.id,
-            langfuse_handler=handler,
-        )
+    actual_output = stream_chat(
+        query=item.input,
+        user_persona=USER_PERSONA,
+        thread_id=item.id,
+        langfuse_handler=handler,
     )
     actual_outputs.append(actual_output)
-    langfuse.score(
-        trace_id=handler.get_trace_id(), name="gadm_matches_score", value=1
-    )
+    langfuse.score(trace_id=handler.get_trace_id(), name="fake_score", value=1)
