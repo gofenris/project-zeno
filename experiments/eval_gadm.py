@@ -116,14 +116,20 @@ def score_gadm_matches(
     actual: List[GadmLocation], expected: List[GadmLocation]
 ) -> float:
     """Compare name and gadm_id of each actual and see if they match."""
-    if not expected:
-        # If nothing is expected, score is 1.0 if nothing is actual, else 0.0.
-        return 1.0 if not actual else 0.0
+    # Case 1: Both lists are empty.
+    # This is considered a perfect match (or vacuously true).
+    if not actual and not expected:
+        return 1.0
 
-    if not actual:
-        # If something is expected, but nothing is actual, score is 0.0.
-        # This is reached only if expected is not empty.
+    # Case 2: One list is empty, but the other is not.
+    # This means either:
+    #   - Nothing was expected, but something was returned (false positives).
+    #   - Something was expected, but nothing was returned (false negatives).
+    # In either scenario, the score is 0.0.
+    if not actual or not expected:
         return 0.0
+
+    # At this point, both `actual` and `expected` lists are non-empty.
 
     # Create lists of (name, gadm_id) tuples for comparison
     actual_tuples = [(loc.name, loc.gadm_id) for loc in actual]
