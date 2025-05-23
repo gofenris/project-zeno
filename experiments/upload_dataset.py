@@ -22,3 +22,7 @@ def insert_langfuse_item(dataset_name, input, expected_output, filename):
         expected_output=expected_output,
         metadata={"filename": filename},
     )
+
+
+def as_expected_gadm_output(location_name, gadm_id):
+    return {"name": location_name, "gadm_id": gadm_id}
