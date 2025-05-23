@@ -90,6 +90,27 @@ def parse_gadm_from_json(json_str: str) -> List[GadmLocation]:
     return results
 
 
+def parse_expected_output(json_str: str) -> List[GadmLocation]:
+    # example input json string (array of objects):
+    # [
+    #   { "name": "Brazil", "gadm_id": "BRA", "gadm_level": 0 },
+    #   { "name": "Amazonas", "gadm_id": "BRA.3_1", "gadm_level": 1 }
+    # ]
+    # Assumes json_str is always a string representing a JSON array of GADM location objects.
+    data_list = json.loads(json_str)
+    results: List[GadmLocation] = []
+
+    for item in data_list:
+        location = GadmLocation(
+            name=item.get("name"),
+            gadm_id=item.get("gadm_id"),
+            gadm_level=item.get("gadm_level"),
+            admin_level=item.get("admin_level"),
+        )
+        results.append(location)
+    return results
+
+
 langfuse = Langfuse(
     secret_key=os.getenv("LANGFUSE_SECRET_KEY"),
     public_key=os.getenv("LANGFUSE_PUBLIC_KEY"),
