@@ -19,6 +19,14 @@ class GadmLocation:
     gadm_id: str
     gadm_level: Optional[int] = None
     admin_level: Optional[int] = None
+    
+    def __eq__(self, other):
+        if not isinstance(other, GadmLocation):
+            return NotImplemented
+        return self.name == other.name and self.gadm_id == other.gadm_id
+    
+    def __hash__(self):
+        return hash((self.name, self.gadm_id))
 
 
 # I don't know what this does. So just copied over from test_alerts.sh defaults
@@ -153,12 +161,8 @@ def score_gadm_matches(
 
     # At this point, both `actual` and `expected` lists are non-empty.
 
-    # Create lists of (name, gadm_id) tuples for comparison
-    actual_tuples = [(loc.name, loc.gadm_id) for loc in actual]
-    expected_tuples = [(loc.name, loc.gadm_id) for loc in expected]
-
-    actual_counts = Counter(actual_tuples)
-    expected_counts = Counter(expected_tuples)
+    actual_counts = Counter(actual)
+    expected_counts = Counter(expected)
 
     # Calculate the intersection of the two multisets
     # The '&' operator for Counters results in a new Counter where counts are min(count_in_actual, count_in_expected)
