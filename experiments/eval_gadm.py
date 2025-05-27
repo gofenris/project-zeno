@@ -218,6 +218,11 @@ for item in active_dataset_items:
         langgraph_output_to_json(actual_output)
     )
     expected_gadms = parse_expected_output(item.expected_output)
+
+    # Concise debug output
+    print(f"  Expected: {[f'{g.name}({g.gadm_id})' for g in expected_gadms]}")
+    print(f"  Actual:   {[f'{g.name}({g.gadm_id})' for g in actual_gadms]}")
+
     score = score_gadm_matches(actual_gadms, expected_gadms)
     langfuse.score(
         trace_id=handler.get_trace_id(), name="gadm_matches_score", value=score
