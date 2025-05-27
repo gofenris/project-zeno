@@ -214,5 +214,11 @@ for item in active_dataset_items:
         langfuse_handler=handler,
     )
     actual_outputs.append(actual_output)
-    actual_gadm = parse_gadm_from_json(langgraph_output_to_json(actual_output))
-    # langfuse.score(trace_id=handler.get_trace_id(), name="fake_score", value=1)
+    actual_gadms = parse_gadm_from_json(
+        langgraph_output_to_json(actual_output)
+    )
+    expected_gadms = parse_expected_output(item.expected_output)
+    score = score_gadm_matches(actual_gadms, expected_gadms)
+    langfuse.score(
+        trace_id=handler.get_trace_id(), name="gadm_matches_score", value=score
+    )
