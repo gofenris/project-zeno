@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import List, Optional
 
+from langchain_core.load import dumpd
 from langchain_core.messages import HumanMessage
 from langfuse import Langfuse
 from langfuse.callback import CallbackHandler
@@ -19,12 +20,12 @@ class GadmLocation:
     gadm_id: str
     gadm_level: Optional[int] = None
     admin_level: Optional[int] = None
-    
+
     def __eq__(self, other):
         if not isinstance(other, GadmLocation):
             return NotImplemented
         return self.name == other.name and self.gadm_id == other.gadm_id
-    
+
     def __hash__(self):
         return hash((self.name, self.gadm_id))
 
@@ -87,7 +88,10 @@ def stream_chat(
     )
 
 
-# TODO: Refactor to process LangGraph object output from `stream_chat` instead of a JSON string.
+def langgraph_output_to_dict(messages):
+    return dumpd(messages)
+
+
 def parse_gadm_from_json(json_str: str) -> List[GadmLocation]:
     """Extracts GADM location data from agent JSON output.
 
@@ -205,4 +209,5 @@ for item in active_dataset_items:
         langfuse_handler=handler,
     )
     actual_outputs.append(actual_output)
+    actual_gadm = parse_gadm_from_dict(langgraph_output_to_dict(actual_output))
     # langfuse.score(trace_id=handler.get_trace_id(), name="fake_score", value=1)
