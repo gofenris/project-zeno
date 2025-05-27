@@ -12,10 +12,14 @@ class GadmLocation:
     def __eq__(self, other):
         if not isinstance(other, GadmLocation):
             return NotImplemented
-        return self.name == other.name and self.gadm_id == other.gadm_id
+        return normalize_gadm_id(self.gadm_id) == normalize_gadm_id(other.gadm_id)
 
     def __hash__(self):
-        return hash((self.name, self.gadm_id))
+        return hash(normalize_gadm_id(self.gadm_id))
+
+def normalize_gadm_id(gadm_id: str) -> str:
+    gadm_id = gadm_id.replace("-", ".").lower()
+    return gadm_id
 
 def parse_gadm_from_json(json_str: str) -> List[GadmLocation]:
     """Extracts GADM location data from Langgraph json output.

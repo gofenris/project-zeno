@@ -1,7 +1,7 @@
 import pytest
 from experiments.gadm_utils import GadmLocation, parse_expected_output
 
-# --- Passing test cases (should be equal) ---
+# --- Passing test cases (GadmnLocations should be equal) ---
 passing_cases = [
     ({"gadm_id": "CHE.9"}, {"gadm_id": "CHE-9"}),
     # this should pass, hyphen and periods allowed
@@ -14,6 +14,7 @@ passing_cases = [
     ({"gadm_id": "GBR.1.83_1", "name": "Sheffield", "gadm_level": "1"}, {"gadm_id": "GBR-1-83_1", "name": "Sheffield", "gadm_level": "3"}),
 ]
 
+# --- Failing test cases ---
 failing_cases = [
     ({"gadm_id": "RUS"}, {"gadm_id": "IDN"}),
     ({"gadm_id": "CHE.9.1_1"}, {"gadm_id": "CHE-9"}),
