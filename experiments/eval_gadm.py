@@ -92,21 +92,19 @@ def langgraph_output_to_dict(messages):
     return dumpd(messages)
 
 
-def parse_gadm_from_json(json_str: str) -> List[GadmLocation]:
-    """Extracts GADM location data from agent JSON output.
+def parse_gadm_from_dict(data: dict) -> List[GadmLocation]:
+    """Extracts GADM location data from Langgraph dict output.
 
     Filters for "location-tool" messages and extracts GADM details
     (name, ID, level, admin_level) from their artifact properties.
     Equivalent to jq: '.messages[] | select(.type=="tool" and .name=="location-tool") | .artifact[].properties | {name, gadm_id, gadm_level, admin_level}'
 
     Args:
-        json_str: The JSON string output from the agent.
+        data: The dict output from the agent.
 
     Returns:
         A list of GadmLocation objects.
     """
-
-    data = json.loads(json_str)
     results: List[GadmLocation] = []
     for message in data.get("messages", []):
         if (
