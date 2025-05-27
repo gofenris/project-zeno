@@ -130,25 +130,17 @@ def parse_gadm_from_json(json_str: str) -> List[GadmLocation]:
     return results
 
 
-def parse_expected_output(json_str: str) -> List[GadmLocation]:
-    # example input json string (array of objects):
-    # [
-    #   { "name": "Brazil", "gadm_id": "BRA", "gadm_level": 0 },
-    #   { "name": "Amazonas", "gadm_id": "BRA.3_1", "gadm_level": 1 }
-    # ]
-    # Assumes json_str is always a string representing a JSON array of GADM location objects.
-    data_list = json.loads(json_str)
-    results: List[GadmLocation] = []
-
-    for item in data_list:
-        location = GadmLocation(
+def parse_expected_output(data: List[dict]) -> List[GadmLocation]:
+    """Convert list of dicts to list of GadmLocation objects."""
+    return [
+        GadmLocation(
             name=item.get("name"),
             gadm_id=item.get("gadm_id"),
             gadm_level=item.get("gadm_level"),
             admin_level=item.get("admin_level"),
         )
-        results.append(location)
-    return results
+        for item in data
+    ]
 
 
 def score_gadm_matches(
@@ -214,5 +206,16 @@ for item in active_dataset_items:
         langfuse_handler=handler,
     )
     actual_outputs.append(actual_output)
-    actual_gadm = parse_gadm_from_json(langgraph_output_to_json(actual_output))
-    # langfuse.score(trace_id=handler.get_trace_id(), name="fake_score", value=1)
+    actual_gadms = parse_gadm_from_json(
+        langgraph_output_to_json(actual_output)
+    )
+    expected_gadms = parse_expected_output(item.expected_output)
+
+    # Concise debug output
+    print(f"  Expected: {[f'{g.name}({g.gadm_id})' for g in expected_gadms]}")
+    print(f"  Actual:   {[f'{g.name}({g.gadm_id})' for g in actual_gadms]}")
+
+    score = score_gadm_matches(actual_gadms, expected_gadms)
+    langfuse.score(
+        trace_id=handler.get_trace_id(), name="gadm_matches_score", value=score
+    )
