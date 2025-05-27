@@ -111,11 +111,13 @@ def parse_gadm_from_json(json_str: str) -> List[GadmLocation]:
     for item in data:
         if "tools" in item and "messages" in item["tools"]:
             for message in item["tools"]["messages"]:
+                # Extract the actual message data from kwargs
+                msg_data = message.get("kwargs", message)
                 if (
-                    message.get("type") == "tool"
-                    and message.get("name") == "location-tool"
+                    msg_data.get("type") == "tool"
+                    and msg_data.get("name") == "location-tool"
                 ):
-                    for artifact_item in message.get("artifact", []):
+                    for artifact_item in msg_data.get("artifact", []):
                         properties = artifact_item.get("properties", {})
                         location_info = GadmLocation(
                             name=properties.get("name"),
