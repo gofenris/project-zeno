@@ -92,34 +92,37 @@ def langgraph_output_to_dict(messages):
     return dumpd(messages)
 
 
-def parse_gadm_from_dict(data: dict) -> List[GadmLocation]:
+def parse_gadm_from_dict(data: List[dict]) -> List[GadmLocation]:
     """Extracts GADM location data from Langgraph dict output.
 
     Filters for "location-tool" messages and extracts GADM details
     (name, ID, level, admin_level) from their artifact properties.
-    Equivalent to jq: '.messages[] | select(.type=="tool" and .name=="location-tool") | .artifact[].properties | {name, gadm_id, gadm_level, admin_level}'
 
     Args:
-        data: The dict output from the agent.
+        data: The list of dict outputs from the agent.
 
     Returns:
         A list of GadmLocation objects.
     """
     results: List[GadmLocation] = []
-    for message in data.get("messages", []):
-        if (
-            message.get("type") == "tool"
-            and message.get("name") == "location-tool"
-        ):
-            for artifact_item in message.get("artifact", []):
-                properties = artifact_item.get("properties", {})
-                location_info = GadmLocation(
-                    name=properties.get("name"),
-                    gadm_id=properties.get("gadm_id"),
-                    gadm_level=properties.get("gadm_level"),
-                    admin_level=properties.get("admin_level"),
-                )
-                results.append(location_info)
+
+    for item in data:
+        if "tools" in item and "messages" in item["tools"]:
+            for message in item["tools"]["messages"]:
+                if (
+                    message.get("type") == "tool"
+                    and message.get("name") == "location-tool"
+                ):
+                    for artifact_item in message.get("artifact", []):
+                        properties = artifact_item.get("properties", {})
+                        location_info = GadmLocation(
+                            name=properties.get("name"),
+                            gadm_id=properties.get("gadm_id"),
+                            gadm_level=properties.get("gadm_level"),
+                            admin_level=properties.get("admin_level"),
+                        )
+                        results.append(location_info)
+
     return results
 
 
