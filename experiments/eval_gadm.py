@@ -131,18 +131,16 @@ def parse_gadm_from_json(json_str: str) -> List[GadmLocation]:
 
 
 def parse_expected_output(data: List[dict]) -> List[GadmLocation]:
-    # example input: [{"name": "Germany", "gadm_id": "DEU"}]
-    # Returns a list of GadmLocation objects created from the list of dicts
-    locations = []
-    for item in data:
-        location = GadmLocation(
+    """Convert list of dicts to list of GadmLocation objects."""
+    return [
+        GadmLocation(
             name=item.get("name"),
             gadm_id=item.get("gadm_id"),
             gadm_level=item.get("gadm_level"),
             admin_level=item.get("admin_level"),
         )
-        locations.append(location)
-    return locations
+        for item in data
+    ]
 
 
 def score_gadm_matches(
