@@ -130,25 +130,17 @@ def parse_gadm_from_json(json_str: str) -> List[GadmLocation]:
     return results
 
 
-def parse_expected_output(json_str: str) -> List[GadmLocation]:
-    # example input json string (array of objects):
-    # [
-    #   { "name": "Brazil", "gadm_id": "BRA", "gadm_level": 0 },
-    #   { "name": "Amazonas", "gadm_id": "BRA.3_1", "gadm_level": 1 }
-    # ]
-    # Assumes json_str is always a string representing a JSON array of GADM location objects.
-    data_list = json.loads(json_str)
-    results: List[GadmLocation] = []
-
-    for item in data_list:
-        location = GadmLocation(
-            name=item.get("name"),
-            gadm_id=item.get("gadm_id"),
-            gadm_level=item.get("gadm_level"),
-            admin_level=item.get("admin_level"),
-        )
-        results.append(location)
-    return results
+def parse_expected_output(data: dict) -> List[GadmLocation]:
+    # example input dict:
+    # { "name": "Germany", "gadm_id": "DEU" }
+    # Returns a list containing a single GadmLocation object created from the dict
+    location = GadmLocation(
+        name=data.get("name"),
+        gadm_id=data.get("gadm_id"),
+        gadm_level=data.get("gadm_level"),
+        admin_level=data.get("admin_level"),
+    )
+    return [location]
 
 
 def score_gadm_matches(
