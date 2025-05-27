@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import List, Optional
 
+from langchain_core.load import dumps
 from langchain_core.messages import HumanMessage
 from langfuse import Langfuse
 from langfuse.callback import CallbackHandler
@@ -19,12 +20,12 @@ class GadmLocation:
     gadm_id: str
     gadm_level: Optional[int] = None
     admin_level: Optional[int] = None
-    
+
     def __eq__(self, other):
         if not isinstance(other, GadmLocation):
             return NotImplemented
         return self.name == other.name and self.gadm_id == other.gadm_id
-    
+
     def __hash__(self):
         return hash((self.name, self.gadm_id))
 
@@ -87,16 +88,18 @@ def stream_chat(
     )
 
 
-# TODO: Refactor to process LangGraph object output from `stream_chat` instead of a JSON string.
+def langgraph_output_to_json(messages):
+    return dumps(messages)
+
+
 def parse_gadm_from_json(json_str: str) -> List[GadmLocation]:
-    """Extracts GADM location data from agent JSON output.
+    """Extracts GADM location data from Langgraph json output.
 
     Filters for "location-tool" messages and extracts GADM details
     (name, ID, level, admin_level) from their artifact properties.
-    Equivalent to jq: '.messages[] | select(.type=="tool" and .name=="location-tool") | .artifact[].properties | {name, gadm_id, gadm_level, admin_level}'
 
     Args:
-        json_str: The JSON string output from the agent.
+        json_str: The JSON serialized output from Langgraph.
 
     Returns:
         A list of GadmLocation objects.
@@ -104,20 +107,26 @@ def parse_gadm_from_json(json_str: str) -> List[GadmLocation]:
 
     data = json.loads(json_str)
     results: List[GadmLocation] = []
-    for message in data.get("messages", []):
-        if (
-            message.get("type") == "tool"
-            and message.get("name") == "location-tool"
-        ):
-            for artifact_item in message.get("artifact", []):
-                properties = artifact_item.get("properties", {})
-                location_info = GadmLocation(
-                    name=properties.get("name"),
-                    gadm_id=properties.get("gadm_id"),
-                    gadm_level=properties.get("gadm_level"),
-                    admin_level=properties.get("admin_level"),
-                )
-                results.append(location_info)
+
+    for item in data:
+        if "tools" in item and "messages" in item["tools"]:
+            for message in item["tools"]["messages"]:
+                # Extract the actual message data from kwargs
+                msg_data = message.get("kwargs", message)
+                if (
+                    msg_data.get("type") == "tool"
+                    and msg_data.get("name") == "location-tool"
+                ):
+                    for artifact_item in msg_data.get("artifact", []):
+                        properties = artifact_item.get("properties", {})
+                        location_info = GadmLocation(
+                            name=properties.get("name"),
+                            gadm_id=properties.get("gadm_id"),
+                            gadm_level=properties.get("gadm_level"),
+                            admin_level=properties.get("admin_level"),
+                        )
+                        results.append(location_info)
+
     return results
 
 
@@ -205,4 +214,5 @@ for item in active_dataset_items:
         langfuse_handler=handler,
     )
     actual_outputs.append(actual_output)
+    actual_gadm = parse_gadm_from_json(langgraph_output_to_json(actual_output))
     # langfuse.score(trace_id=handler.get_trace_id(), name="fake_score", value=1)
