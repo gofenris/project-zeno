@@ -7,6 +7,53 @@ from typing import Any, Callable, Dict
 from langfuse import Langfuse
 
 
+"""
+Parser Template:
+---------------
+def parse_my_format(row: Dict[str, str]) -> Dict[str, Any]:
+    # Extract values from CSV columns
+    value1 = row.get("column1", "")
+    value2 = row.get("column2", "")
+
+    # Process/transform the values as needed
+    processed_data = {...}
+
+    # Must return dict with 'expected_output' key
+    return {"expected_output": processed_data}
+
+Example usage:
+    config = ColumnConfig(
+        input_column="query",  # Column containing the input text
+        parser=parse_my_format
+    )
+    upload_csv("my_dataset", "path/to/file.csv", config)
+"""
+
+
+# This is an example CSV parser
+def parse_simple_location(row: Dict[str, str]) -> Dict[str, Any]:
+    """Example parser for simple location datasets with single values.
+
+    Expected CSV columns:
+    - location: location name (e.g., "Paris, France")
+    - code: location code (e.g., "FR-PAR")
+    - population: population number (optional)
+
+    Returns:
+        {"expected_output": {"location": "Paris, France", "code": "FR-PAR", "population": "2000000"}}
+    """
+    expected = {
+        "location": row.get("location", ""),
+        "code": row.get("code", ""),
+    }
+
+    # Include optional fields if present
+    if "population" in row:
+        expected["population"] = row["population"]
+
+    return {"expected_output": expected}
+
+
 @dataclass
 class ColumnConfig:
     input_column: str  # Column name for the input text
@@ -47,7 +94,19 @@ def as_expected_gadm_output(location_name, gadm_id):
 
 
 def parse_gadm_location(row: Dict[str, str]) -> Dict[str, Any]:
-    """Parser for GADM location datasets with 'id' and 'name' columns."""
+    """Parser for GADM location datasets with 'id' and 'name' columns.
+
+    Expected CSV columns:
+    - id: semicolon-separated GADM IDs (e.g., "USA.1_1;USA.2_1")
+    - name: semicolon-separated location names (e.g., "California;Texas")
+
+    Args:
+        row: Dict with CSV column names as keys
+
+    Returns:
+        Dict with 'expected_output' key containing list of location objects:
+        {"expected_output": [{"name": "California", "gadm_id": "USA.1_1"}, ...]}
+    """
     gadm_ids_str = row.get("id", "")
     location_names_str = row.get("name", "")
 
