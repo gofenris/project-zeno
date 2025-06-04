@@ -1,15 +1,18 @@
 import csv
 import os
-from pathlib import Path
-from typing import Dict, List, Callable, Any
 from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Callable, Dict
 
 from langfuse import Langfuse
+
 
 @dataclass
 class ColumnConfig:
     input_column: str  # Column name for the input text
-    parser: Callable[[Dict[str, str]], Dict[str, Any]]  # Function to parse row into expected_output
+    parser: Callable[
+        [Dict[str, str]], Dict[str, Any]
+    ]  # Function to parse row into expected_output
 
 
 # Usage:
@@ -47,14 +50,16 @@ def parse_gadm_location(row: Dict[str, str]) -> Dict[str, Any]:
     """Parser for GADM location datasets with 'id' and 'name' columns."""
     gadm_ids_str = row.get("id", "")
     location_names_str = row.get("name", "")
-    
+
     gadm_ids = [gid.strip() for gid in gadm_ids_str.split(";") if gid.strip()]
-    location_names = [name.strip() for name in location_names_str.split(";") if name.strip()]
-    
+    location_names = [
+        name.strip() for name in location_names_str.split(";") if name.strip()
+    ]
+
     expected_output = []
     for gadm_id, location_name in zip(gadm_ids, location_names):
         expected_output.append({"name": location_name, "gadm_id": gadm_id})
-    
+
     return {"expected_output": expected_output}
 
 
@@ -64,18 +69,20 @@ def upload_csv(dataset_name: str, csv_filepath: str, config: ColumnConfig):
         with open(csv_filepath, mode="r", encoding="utf-8-sig") as file:
             reader = csv.DictReader(file)
             csv_filename = Path(csv_filepath).name
-            
+
             for row_number, row in enumerate(reader, 1):
                 input_text = row.get(config.input_column)
-                
+
                 if input_text is None:
-                    print(f"Skipping row {row_number} due to missing input column '{config.input_column}': {row}")
+                    print(
+                        f"Skipping row {row_number} due to missing input column '{config.input_column}': {row}"
+                    )
                     continue
-                
+
                 try:
                     parsed_data = config.parser(row)
                     expected_output = parsed_data.get("expected_output", {})
-                    
+
                     insert_langfuse_item(
                         dataset_name=dataset_name,
                         input=input_text,
@@ -85,11 +92,11 @@ def upload_csv(dataset_name: str, csv_filepath: str, config: ColumnConfig):
                 except Exception as e:
                     print(f"Error parsing row {row_number}: {e}")
                     continue
-                    
-        print(f"Successfully processed data from {csv_filename} for dataset {dataset_name}")
+
+        print(
+            f"Successfully processed data from {csv_filename} for dataset {dataset_name}"
+        )
     except FileNotFoundError:
         print(f"Error: The file {csv_filepath} was not found.")
     except Exception as e:
         print(f"An error occurred: {e}")
-
-
