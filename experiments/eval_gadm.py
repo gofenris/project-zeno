@@ -8,19 +8,7 @@ from typing import List, Optional
 from experiments.eval_utils import get_langfuse, get_run_name, run_query
 
 
-def score_gadm(actual, expected):
-    """Score GADM matches."""
-    expected = parse_expected_output(expected)
-
-    if not actual and not expected:
-        return 1.0
-    if not actual or not expected:
-        return 0.0
-
-    matches = sum((Counter(actual) & Counter(expected)).values())
-    return matches / max(len(actual), len(expected))
-
-
+# Data structures
 @dataclass
 class GadmLocation:
     name: str
@@ -39,9 +27,23 @@ class GadmLocation:
         return hash(normalize_gadm_id(self.gadm_id))
 
 
+# Parsing utilities
 def normalize_gadm_id(gadm_id: str) -> str:
     gadm_id = gadm_id.replace("-", ".").lower()
     return gadm_id
+
+
+def parse_expected_output(data: List[dict]) -> List[GadmLocation]:
+    """Convert list of dicts to list of GadmLocation objects."""
+    return [
+        GadmLocation(
+            name=item.get("name"),
+            gadm_id=item.get("gadm_id"),
+            gadm_level=item.get("gadm_level"),
+            admin_level=item.get("admin_level"),
+        )
+        for item in data
+    ]
 
 
 def parse_gadm_from_json(json_str: str) -> List[GadmLocation]:
@@ -82,20 +84,21 @@ def parse_gadm_from_json(json_str: str) -> List[GadmLocation]:
     return results
 
 
-def parse_expected_output(data: List[dict]) -> List[GadmLocation]:
-    """Convert list of dicts to list of GadmLocation objects."""
-    return [
-        GadmLocation(
-            name=item.get("name"),
-            gadm_id=item.get("gadm_id"),
-            gadm_level=item.get("gadm_level"),
-            admin_level=item.get("admin_level"),
-        )
-        for item in data
-    ]
+# Scoring
+def score_gadm(actual, expected):
+    """Score GADM matches."""
+    expected = parse_expected_output(expected)
+
+    if not actual and not expected:
+        return 1.0
+    if not actual or not expected:
+        return 0.0
+
+    matches = sum((Counter(actual) & Counter(expected)).values())
+    return matches / max(len(actual), len(expected))
 
 
-# Run evaluation
+# Main execution
 langfuse = get_langfuse()
 run_name = get_run_name()
 dataset = langfuse.get_dataset("gadm_location")
