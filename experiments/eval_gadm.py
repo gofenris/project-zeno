@@ -1,10 +1,9 @@
 """GADM Location Evaluation Script"""
 
-from collections import Counter
 import json
+from collections import Counter
 from dataclasses import dataclass
 from typing import List, Optional
-
 
 from experiments.eval_utils import get_langfuse, get_run_name, run_query
 
