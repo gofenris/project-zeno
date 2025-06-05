@@ -1,5 +1,3 @@
-"""Investigator Tree Cover Evaluation Script"""
-
 import json
 from dataclasses import dataclass
 from typing import Optional
@@ -25,42 +23,42 @@ def parse_expected_output(data: dict) -> InvestigatorAnswer:
 def parse_output_trace(json_str: str) -> Optional[dict]:
     """
     Parse the output trace to extract messages content.
-    Mimics: jq 'walk(if type == "object" then del(.artifact) else . end)' json_str | 
+    Mimics: jq 'walk(if type == "object" then del(.artifact) else . end)' json_str |
             jq '{messages: .messages | map({type, content} + (if .tool_calls then {tool_calls: .tool_calls | map({name, args})} else {} end))}'
     """
     try:
         data = json.loads(json_str)
-        
+
         # Extract messages if they exist
-        if not isinstance(data, dict) or 'messages' not in data:
+        if not isinstance(data, dict) or "messages" not in data:
             return None
-            
-        messages = data.get('messages', [])
-        
+
+        messages = data.get("messages", [])
+
         # Process messages to keep only type, content, and simplified tool_calls
         processed_messages = []
         for msg in messages:
             if not isinstance(msg, dict):
                 continue
-                
+
             processed_msg = {
-                'type': msg.get('type'),
-                'content': msg.get('content')
+                "type": msg.get("type"),
+                "content": msg.get("content"),
             }
-            
+
             # Add tool_calls if they exist
-            if 'tool_calls' in msg and msg['tool_calls']:
-                processed_msg['tool_calls'] = [
-                    {'name': tc.get('name'), 'args': tc.get('args')}
-                    for tc in msg['tool_calls']
+            if "tool_calls" in msg and msg["tool_calls"]:
+                processed_msg["tool_calls"] = [
+                    {"name": tc.get("name"), "args": tc.get("args")}
+                    for tc in msg["tool_calls"]
                     if isinstance(tc, dict)
                 ]
-            
+
             processed_messages.append(processed_msg)
-        
+
         # Return the distilled JSON structure
-        return {'messages': processed_messages}
-        
+        return {"messages": processed_messages}
+
     except (json.JSONDecodeError, KeyError, TypeError):
         return None
 
