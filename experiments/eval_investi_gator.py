@@ -1,6 +1,7 @@
 import json
 from dataclasses import dataclass
 from typing import Optional
+from typing_extensions import Annotated, TypedDict
 from langchain_anthropic import ChatAnthropic
 
 from experiments.eval_utils import get_langfuse, get_run_name, run_query
@@ -11,6 +12,15 @@ from experiments.eval_utils import get_langfuse, get_run_name, run_query
 class InvestigatorAnswer:
     answer: str
     notes: Optional[str] = None
+
+
+class EvaluationResult(TypedDict):
+    """Evaluation result for the agent's response."""
+
+    pass_fail: Annotated[
+        str, ..., "Either 'pass' or 'fail' based on evaluation"
+    ]
+    analysis: Annotated[str, ..., "Brief explanation of the assessment"]
 
 
 # Parsing utilities
@@ -56,20 +66,29 @@ def parse_output_trace(json_str: str) -> dict:
 
 
 # Scoring
-def score_answer(trace: dict, user_query: str, golden_answer: dict) -> float:
-    """Score answer matches.
+def score_answer(
+    trace: dict, user_query: str, golden_answer: dict, chat_model
+) -> float:
+    """Score answer matches using structured output."""
 
-    TODO: Implement actual scoring logic
-    """
+    # Create a model with structured output
+    evaluator = chat_model.with_structured_output(EvaluationResult)
 
-    prompt = """Analyze the provided agentic system trace against the user query and golden answer.
+    prompt = f"""Analyze the provided agentic system trace against the user query and golden answer.
     Determine if the system responded reasonably well to the query with respect to the expected
     answer. Be lenient in your assessment.
-    Inputs:
 
-    - <Trace>: System execution log showing tool calls and responses
-    - <Query>: User's question
-    - <Golden Answer>: Expected answer
+    <Trace>
+    {json.dumps(trace)}
+    </Trace>
+
+    <Query>
+    {user_query}
+    </Query>
+
+    <Golden Answer>
+    {json.dumps(golden_answer)}
+    </Golden Answer>
 
     Evaluate whether the system:
     1. Made meaningful progress toward answering the query
@@ -77,13 +96,15 @@ def score_answer(trace: dict, user_query: str, golden_answer: dict) -> float:
     3. Provided or approached the correct answer
     4. Handled errors reasonably
 
-    Respond with a JSON containing:
-    - "pass/fail": "pass" if the system adequately addressed the query (even partially), "fail" if it did not
-    - "analysis": Brief explanation of your assessment, including what worked, what failed, and whether the golden answer was reached or approached
-    """
+    Respond with pass_fail as "pass" if the system adequately addressed the query (even partially), "fail" if it did not.
+    Include a brief analysis explaining your assessment."""
 
-    # Placeholder - return 0.0 for now
-    return 0.0
+    try:
+        result = evaluator.invoke(prompt)
+        return 1.0 if result["pass_fail"] == "pass" else 0.0
+    except Exception as e:
+        print(f"Error evaluating response: {e}")
+        return 0.0
 
 
 # Main execution
@@ -108,7 +129,7 @@ for item in dataset.items:
 
     # Score
     actual = parse_output_trace(response)
-    score = score_answer(actual, item.expected_output)
+    score = score_answer(actual, item.input, item.expected_output, chat_model)
 
     # Upload
     langfuse.score(
