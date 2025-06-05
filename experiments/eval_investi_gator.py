@@ -31,7 +31,9 @@ def parse_output_trace(json_str: str) -> Optional[dict]:
     # Collect all messages from the nested structure
     messages = []
     for item in data:
-        for message in item["tools"]["messages"]:
+        # Get messages from whichever key exists (tools or agent)
+        node = item.get("tools", item.get("agent", {}))
+        for message in node.get("messages", []):
             msg_data = message.get("kwargs", message)
 
             processed_msg = {
