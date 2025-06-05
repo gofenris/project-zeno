@@ -1,6 +1,7 @@
 import json
 from dataclasses import dataclass
 from typing import Optional
+from langchain_anthropic import ChatAnthropic
 
 from experiments.eval_utils import get_langfuse, get_run_name, run_query
 
@@ -20,7 +21,7 @@ def parse_expected_output(data: dict) -> InvestigatorAnswer:
     )
 
 
-def parse_output_trace(json_str: str) -> Optional[dict]:
+def parse_output_trace(json_str: str) -> dict:
     """
     Parse the output trace to extract messages content.
     Mimics: jq 'walk(if type == "object" then del(.artifact) else . end)' json_str |
@@ -55,13 +56,32 @@ def parse_output_trace(json_str: str) -> Optional[dict]:
 
 
 # Scoring
-def score_answer(
-    actual: Optional[InvestigatorAnswer], expected: dict
-) -> float:
+def score_answer(trace: dict, user_query: str, golden_answer: dict) -> float:
     """Score answer matches.
 
     TODO: Implement actual scoring logic
     """
+
+    prompt = """Analyze the provided agentic system trace against the user query and golden answer.
+    Determine if the system responded reasonably well to the query with respect to the expected
+    answer. Be lenient in your assessment.
+    Inputs:
+
+    - <Trace>: System execution log showing tool calls and responses
+    - <Query>: User's question
+    - <Golden Answer>: Expected answer
+
+    Evaluate whether the system:
+    1. Made meaningful progress toward answering the query
+    2. Retrieved relevant data or information
+    3. Provided or approached the correct answer
+    4. Handled errors reasonably
+
+    Respond with a JSON containing:
+    - "pass/fail": "pass" if the system adequately addressed the query (even partially), "fail" if it did not
+    - "analysis": Brief explanation of your assessment, including what worked, what failed, and whether the golden answer was reached or approached
+    """
+
     # Placeholder - return 0.0 for now
     return 0.0
 
@@ -70,6 +90,11 @@ def score_answer(
 langfuse = get_langfuse()
 run_name = get_run_name()
 dataset = langfuse.get_dataset("s5_t2_02_investigator")
+chat_model = ChatAnthropic(
+    model="claude-opus-4-20250514",
+    max_tokens=20000,
+    thinking={"type": "enabled", "budget_tokens": 10000},
+)
 
 print(f"Evaluating {len(dataset.items)} items...")
 
