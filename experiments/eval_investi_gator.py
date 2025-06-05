@@ -21,9 +21,11 @@ def parse_expected_output(data: dict) -> InvestigatorAnswer:
     )
 
 
-def parse_output_trace(json_str: str) -> Optional[InvestigatorAnswer]:
+def parse_output_trace(json_str: str) -> Optional[dict]:
     """
-    jq 'walk(if type == "object" then del(.artifact) else . end)' json_str  | jq '{messages: .messages | map({type, content} + (if .tool_calls then {tool_calls: .tool_calls | map({name, args})} else {} end))}'
+    Parse the output trace to extract messages content.
+    Mimics: jq 'walk(if type == "object" then del(.artifact) else . end)' json_str | 
+            jq '{messages: .messages | map({type, content} + (if .tool_calls then {tool_calls: .tool_calls | map({name, args})} else {} end))}'
     """
     # Placeholder - return None for now
     return None
