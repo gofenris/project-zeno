@@ -21,10 +21,9 @@ def parse_expected_output(data: dict) -> InvestigatorAnswer:
     )
 
 
-def parse_answer_from_json(json_str: str) -> Optional[InvestigatorAnswer]:
-    """Extracts answer from Langgraph json output.
-
-    TODO: Implement actual parsing logic based on agent response format
+def parse_output_trace(json_str: str) -> Optional[InvestigatorAnswer]:
+    """
+    jq 'walk(if type == "object" then del(.artifact) else . end)' json_str  | jq '{messages: .messages | map({type, content} + (if .tool_calls then {tool_calls: .tool_calls | map({name, args})} else {} end))}'
     """
     # Placeholder - return None for now
     return None
@@ -58,16 +57,16 @@ for item in dataset.items:
     response = run_query(item.input, handler, "researcher", item.id)
 
     # Score
-    actual = parse_answer_from_json(response)
+    actual = parse_output_trace(response)
     score = score_answer(actual, item.expected_output)
 
     # Upload
-    langfuse.score(
-        trace_id=handler.get_trace_id(),
-        name="tree_cover_answer_score",
-        value=score,
-        comment=f"Expected: {item.expected_output}\nActual: {actual}",
-    )
+    # langfuse.score(
+    #     trace_id=handler.get_trace_id(),
+    #     name="tree_cover_answer_score",
+    #     value=score,
+    #     comment=f"Expected: {item.expected_output}\nActual: {actual}",
+    # )
     langfuse.flush()
 
     print(f"✓ {item.input} -> {score}")
