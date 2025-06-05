@@ -45,14 +45,17 @@ def run_query(
         "callbacks": [handler],
     }
 
-    response = zeno.stream(
-        {
-            "messages": [HumanMessage(content=query)],
-            "user_persona": user_persona,
-        },
-        config=config,
-        stream_mode="updates",
-        subgraphs=False,
-    )
-
-    return dumps(list(response))
+    try:
+        response = zeno.stream(
+            {
+                "messages": [HumanMessage(content=query)],
+                "user_persona": user_persona,
+            },
+            config=config,
+            stream_mode="updates",
+            subgraphs=False,
+        )
+        return dumps(list(response))
+    except langgraph.errors.GraphRecursionError:
+        # print error and then return empty
+        return ""
