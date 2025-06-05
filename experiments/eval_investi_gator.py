@@ -39,6 +39,7 @@ def parse_output_trace(json_str: str) -> Optional[dict]:
             processed_msg = {
                 "type": msg_data.get("type"),
                 "content": msg_data.get("content"),
+                "name": msg_data.get("name"),
             }
 
             # Add tool_calls if present
@@ -85,12 +86,12 @@ for item in dataset.items:
     score = score_answer(actual, item.expected_output)
 
     # Upload
-    # langfuse.score(
-    #     trace_id=handler.get_trace_id(),
-    #     name="tree_cover_answer_score",
-    #     value=score,
-    #     comment=f"Expected: {item.expected_output}\nActual: {actual}",
-    # )
+    langfuse.score(
+        trace_id=handler.get_trace_id(),
+        name="tree_cover_answer_score",
+        value=score,
+        comment=f"Actual: {actual}",
+    )
     langfuse.flush()
 
     print(f"✓ {item.input} -> {score}")
