@@ -71,6 +71,13 @@ def evaluate_answer(
 ) -> EvaluationResult:
     """Evaluate answer matches using structured output."""
 
+    # Check for empty trace (likely from error handling)
+    if not trace.get("messages"):
+        return EvaluationResult(
+            pass_fail="fail",
+            analysis="Empty response received - likely due to GraphRecursionError or other runtime error. Check run logs for details.",
+        )
+
     # Create a model with structured output
     evaluator = chat_model.with_structured_output(EvaluationResult)
 
@@ -119,10 +126,11 @@ chat_model = ChatAnthropic(
 )
 
 active_items = [item for item in dataset.items if item.status == "ACTIVE"]
-print(f"Evaluating {len(active_items)} active items (out of {len(dataset.items)} total)...")
+print(
+    f"Evaluating {len(active_items)} active items (out of {len(dataset.items)} total)..."
+)
 
 for item in active_items:
-
     # Execute
     handler = item.get_langchain_handler(run_name=run_name)
     response = run_query(item.input, handler, "researcher", item.id)
