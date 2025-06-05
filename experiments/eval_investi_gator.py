@@ -66,10 +66,10 @@ def parse_output_trace(json_str: str) -> dict:
 
 
 # Scoring
-def score_answer(
+def evaluate_answer(
     trace: dict, user_query: str, golden_answer: dict, chat_model
-) -> float:
-    """Score answer matches using structured output."""
+) -> EvaluationResult:
+    """Evaluate answer matches using structured output."""
 
     # Create a model with structured output
     evaluator = chat_model.with_structured_output(EvaluationResult)
@@ -99,12 +99,13 @@ def score_answer(
     Respond with pass_fail as "pass" if the system adequately addressed the query (even partially), "fail" if it did not.
     Include a brief analysis explaining your assessment."""
 
-    try:
-        result = evaluator.invoke(prompt)
-        return 1.0 if result["pass_fail"] == "pass" else 0.0
-    except Exception as e:
-        print(f"Error evaluating response: {e}")
-        return 0.0
+    result = evaluator.invoke(prompt)
+    return result
+
+
+def evaluation_to_score(evaluation: EvaluationResult) -> float:
+    """Convert evaluation result to numeric score."""
+    return 1.0 if evaluation["pass_fail"] == "pass" else 0.0
 
 
 # Main execution
@@ -129,14 +130,17 @@ for item in dataset.items:
 
     # Score
     actual = parse_output_trace(response)
-    score = score_answer(actual, item.input, item.expected_output, chat_model)
+    evaluation = evaluate_answer(
+        actual, item.input, item.expected_output, chat_model
+    )
+    score = evaluation_to_score(evaluation)
 
     # Upload
     langfuse.score(
         trace_id=handler.get_trace_id(),
         name="tree_cover_answer_score",
         value=score,
-        comment=f"Actual: {actual}",
+        comment=f"Analysis: {evaluation['analysis']}",
     )
     langfuse.flush()
 
