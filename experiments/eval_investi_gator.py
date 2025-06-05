@@ -118,11 +118,10 @@ chat_model = ChatAnthropic(
     thinking={"type": "enabled", "budget_tokens": 10000},
 )
 
-print(f"Evaluating {len(dataset.items)} items...")
+active_items = [item for item in dataset.items if item.status == "ACTIVE"]
+print(f"Evaluating {len(active_items)} active items (out of {len(dataset.items)} total)...")
 
-for item in dataset.items:
-    if item.status != "ACTIVE":
-        continue
+for item in active_items:
 
     # Execute
     handler = item.get_langchain_handler(run_name=run_name)
