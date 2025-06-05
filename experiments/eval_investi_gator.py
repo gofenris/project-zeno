@@ -26,41 +26,29 @@ def parse_output_trace(json_str: str) -> Optional[dict]:
     Mimics: jq 'walk(if type == "object" then del(.artifact) else . end)' json_str |
             jq '{messages: .messages | map({type, content} + (if .tool_calls then {tool_calls: .tool_calls | map({name, args})} else {} end))}'
     """
-    try:
-        data = json.loads(json_str)
+    data = json.loads(json_str)
 
-        # Extract messages if they exist
-        if not isinstance(data, dict) or "messages" not in data:
-            return None
-
-        messages = data.get("messages", [])
-
-        # Process messages to keep only type, content, and simplified tool_calls
-        processed_messages = []
-        for msg in messages:
-            if not isinstance(msg, dict):
-                continue
+    # Collect all messages from the nested structure
+    messages = []
+    for item in data:
+        for message in item["tools"]["messages"]:
+            msg_data = message.get("kwargs", message)
 
             processed_msg = {
-                "type": msg.get("type"),
-                "content": msg.get("content"),
+                "type": msg_data.get("type"),
+                "content": msg_data.get("content"),
             }
 
-            # Add tool_calls if they exist
-            if "tool_calls" in msg and msg["tool_calls"]:
+            # Add tool_calls if present
+            if "tool_calls" in msg_data:
                 processed_msg["tool_calls"] = [
-                    {"name": tc.get("name"), "args": tc.get("args")}
-                    for tc in msg["tool_calls"]
-                    if isinstance(tc, dict)
+                    {"name": tc["name"], "args": tc["args"]}
+                    for tc in msg_data["tool_calls"]
                 ]
 
-            processed_messages.append(processed_msg)
+            messages.append(processed_msg)
 
-        # Return the distilled JSON structure
-        return {"messages": processed_messages}
-
-    except (json.JSONDecodeError, KeyError, TypeError):
-        return None
+    return {"messages": messages}
 
 
 # Scoring
