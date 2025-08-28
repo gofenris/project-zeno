@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trace Analyzer</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .section { margin: 30px 0; padding: 20px; border: 1px solid #ddd; border-radius: 5px; }
+        .controls { margin-bottom: 20px; }
+        button { padding: 10px 20px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .loading { color: #666; font-style: italic; }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        th, td { padding: 8px 12px; border: 1px solid #ddd; text-align: left; }
+        th { background: #f5f5f5; }
+        .chart-container { width: 100%; height: 400px; margin: 20px 0; }
+        .success-rate { color: #28a745; font-weight: bold; }
+        .error-rate { color: #dc3545; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Langfuse Trace Analyzer</h1>
+        
+        <div class="controls">
+            <button onclick="fetchTraces()">Fetch Last 5 Days</button>
+            <button onclick="loadAnalysis('basic_summary')">Basic Summary</button>
+            <button onclick="loadAnalysis('datasets')">Dataset Analysis</button>
+            <button onclick="loadAnalysis('tools')">Tool Analysis</button>
+        </div>
+        
+        <div id="status" class="loading" style="display: none;"></div>
+        
+        <div id="basic-summary" class="section" style="display: none;">
+            <h2>Basic Summary - Last 5 Days</h2>
+            <div id="summary-table"></div>
+            <div class="chart-container">
+                <canvas id="traces-chart"></canvas>
+            </div>
+            <div class="chart-container">
+                <canvas id="success-chart"></canvas>
+            </div>
+        </div>
+        
+        <div id="dataset-analysis" class="section" style="display: none;">
+            <h2>Dataset Analysis</h2>
+            <div id="dataset-table"></div>
+        </div>
+        
+        <div id="tool-analysis" class="section" style="display: none;">
+            <h2>Tool Analysis</h2>
+            <div id="tool-table"></div>
+        </div>
+    </div>
+
+    <script>
+        function showStatus(message) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.style.display = 'block';
+        }
+        
+        function hideStatus() {
+            document.getElementById('status').style.display = 'none';
+        }
+        
+        async function fetchTraces() {
+            showStatus('Fetching traces...');
+            
+            try {
+                const response = await fetch('/api/fetch_traces', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ days: 5, environment: 'default' })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showStatus('Traces fetched successfully!');
+                    setTimeout(hideStatus, 2000);
+                } else {
+                    showStatus('Error: ' + result.error);
+                }
+            } catch (error) {
+                showStatus('Error: ' + error.message);
+            }
+        }
+        
+        async function loadAnalysis(analysisType) {
+            showStatus('Loading analysis...');
+            
+            try {
+                const response = await fetch(`/api/analysis/${analysisType}`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    if (analysisType === 'basic_summary') {
+                        displayBasicSummary(result.data);
+                    } else if (analysisType === 'datasets') {
+                        displayDatasetAnalysis(result.data);
+                    } else if (analysisType === 'tools') {
+                        displayToolAnalysis(result.data);
+                    }
+                    hideStatus();
+                } else {
+                    showStatus('Error: ' + result.error);
+                }
+            } catch (error) {
+                showStatus('Error: ' + error.message);
+            }
+        }
+        
+        function displayBasicSummary(data) {
+            // Hide other sections
+            document.getElementById('dataset-analysis').style.display = 'none';
+            document.getElementById('tool-analysis').style.display = 'none';
+            
+            // Show basic summary
+            const section = document.getElementById('basic-summary');
+            section.style.display = 'block';
+            
+            // Create summary table
+            const tableContainer = document.getElementById('summary-table');
+            const summaryTable = data.summary_table;
+            
+            let tableHTML = '<table><thead><tr><th>Metric</th>';
+            const dates = Object.keys(summaryTable).sort();
+            dates.forEach(date => {
+                tableHTML += `<th>${date}</th>`;
+            });
+            tableHTML += '</tr></thead><tbody>';
+            
+            const metrics = [
+                { key: 'total_traces', label: 'Total Traces' },
+                { key: 'successful_traces', label: 'Successful Traces' },
+                { key: 'success_rate', label: 'Success Rate', format: 'percentage' },
+                { key: 'error_traces', label: 'Error Traces' },
+                { key: 'unique_users', label: 'Unique Users' },
+                { key: 'unique_sessions', label: 'Unique Sessions' }
+            ];
+            
+            metrics.forEach(metric => {
+                tableHTML += `<tr><td><strong>${metric.label}</strong></td>`;
+                dates.forEach(date => {
+                    let value = summaryTable[date][metric.key];
+                    if (metric.format === 'percentage') {
+                        value = (value * 100).toFixed(1) + '%';
+                        const className = parseFloat(value) >= 80 ? 'success-rate' : 'error-rate';
+                        tableHTML += `<td class="${className}">${value}</td>`;
+                    } else {
+                        tableHTML += `<td>${value}</td>`;
+                    }
+                });
+                tableHTML += '</tr>';
+            });
+            
+            tableHTML += '</tbody></table>';
+            tableContainer.innerHTML = tableHTML;
+            
+            // Create charts
+            createTracesChart(data.time_series);
+            createSuccessChart(data.time_series);
+        }
+        
+        function createTracesChart(timeSeriesData) {
+            const ctx = document.getElementById('traces-chart').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: timeSeriesData.dates,
+                    datasets: [{
+                        label: 'Number of Traces',
+                        data: timeSeriesData.trace_counts,
+                        borderColor: '#007bff',
+                        backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Daily Trace Volume'
+                        }
+                    }
+                }
+            });
+        }
+        
+        function createSuccessChart(timeSeriesData) {
+            const ctx = document.getElementById('success-chart').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: timeSeriesData.dates,
+                    datasets: [{
+                        label: 'Success Rate',
+                        data: timeSeriesData.success_rates.map(rate => rate * 100),
+                        borderColor: '#28a745',
+                        backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Daily Success Rate'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        annotation: {
+                            annotations: {
+                                line1: {
+                                    type: 'line',
+                                    yMin: 80,
+                                    yMax: 80,
+                                    borderColor: '#ffc107',
+                                    borderWidth: 2,
+                                    borderDash: [5, 5],
+                                    label: {
+                                        content: '80% Target',
+                                        enabled: true
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        function displayDatasetAnalysis(data) {
+            // Hide other sections
+            document.getElementById('basic-summary').style.display = 'none';
+            document.getElementById('tool-analysis').style.display = 'none';
+            
+            // Show dataset analysis
+            const section = document.getElementById('dataset-analysis');
+            section.style.display = 'block';
+            
+            // Create dataset table
+            const tableContainer = document.getElementById('dataset-table');
+            const datasetTable = data.dataset_table;
+            
+            let tableHTML = '<h3>Dataset Usage Summary</h3><table><thead><tr><th>Date</th><th>Unique Datasets</th><th>Datasets Used</th></tr></thead><tbody>';
+            
+            Object.keys(datasetTable).sort().forEach(date => {
+                const dayData = datasetTable[date];
+                tableHTML += `<tr><td>${date}</td><td>${dayData.unique_datasets}</td><td>${dayData.datasets_list.join(', ')}</td></tr>`;
+            });
+            
+            tableHTML += '</tbody></table>';
+            
+            // Add detailed dataset stats
+            tableHTML += '<h3>Dataset Success Rates</h3>';
+            Object.keys(datasetTable).sort().forEach(date => {
+                const dayData = datasetTable[date];
+                if (Object.keys(dayData.dataset_stats).length > 0) {
+                    tableHTML += `<h4>${date}</h4><table><thead><tr><th>Dataset</th><th>Attempted</th><th>Successful</th><th>Success Rate</th></tr></thead><tbody>`;
+                    
+                    Object.entries(dayData.dataset_stats).forEach(([dataset, stats]) => {
+                        const successRate = (stats.success_rate * 100).toFixed(1) + '%';
+                        const className = stats.success_rate >= 0.8 ? 'success-rate' : 'error-rate';
+                        tableHTML += `<tr><td>${dataset}</td><td>${stats.attempted}</td><td>${stats.successful}</td><td class="${className}">${successRate}</td></tr>`;
+                    });
+                    
+                    tableHTML += '</tbody></table>';
+                }
+            });
+            
+            tableContainer.innerHTML = tableHTML;
+        }
+        
+        function displayToolAnalysis(data) {
+            // Hide other sections
+            document.getElementById('basic-summary').style.display = 'none';
+            document.getElementById('dataset-analysis').style.display = 'none';
+            
+            // Show tool analysis
+            const section = document.getElementById('tool-analysis');
+            section.style.display = 'block';
+            
+            // Create tool table
+            const tableContainer = document.getElementById('tool-table');
+            const toolTable = data.tool_table;
+            
+            let tableHTML = '<h3>Tool Usage Summary</h3><table><thead><tr><th>Date</th><th>Unique Tools</th><th>Tools Used</th></tr></thead><tbody>';
+            
+            Object.keys(toolTable).sort().forEach(date => {
+                const dayData = toolTable[date];
+                tableHTML += `<tr><td>${date}</td><td>${dayData.unique_tools}</td><td>${dayData.tools_list.join(', ')}</td></tr>`;
+            });
+            
+            tableHTML += '</tbody></table>';
+            
+            // Add detailed tool stats
+            tableHTML += '<h3>Tool Performance</h3>';
+            Object.keys(toolTable).sort().forEach(date => {
+                const dayData = toolTable[date];
+                if (Object.keys(dayData.tool_stats).length > 0) {
+                    tableHTML += `<h4>${date}</h4><table><thead><tr><th>Tool</th><th>Usage Count</th><th>Usage Rate</th><th>Success Rate</th><th>Avg Calls/Trace</th><th>Max Calls/Trace</th></tr></thead><tbody>`;
+                    
+                    Object.entries(dayData.tool_stats).forEach(([tool, stats]) => {
+                        const usageRate = (stats.usage_rate * 100).toFixed(1) + '%';
+                        const successRate = (stats.success_rate * 100).toFixed(1) + '%';
+                        const successClass = stats.success_rate >= 0.8 ? 'success-rate' : 'error-rate';
+                        
+                        tableHTML += `<tr>
+                            <td>${tool}</td>
+                            <td>${stats.usage_count}</td>
+                            <td>${usageRate}</td>
+                            <td class="${successClass}">${successRate}</td>
+                            <td>${stats.avg_calls_per_trace.toFixed(1)}</td>
+                            <td>${stats.max_calls_per_trace}</td>
+                        </tr>`;
+                    });
+                    
+                    tableHTML += '</tbody></table>';
+                }
+            });
+            
+            tableContainer.innerHTML = tableHTML;
+        }
+    </script>
+</body>
+</html>
