@@ -171,9 +171,10 @@ nbs/data
 *.duckdb
 *.ddb
 *.db
+traces_data/
 
 # API backup
-.api/ 
+.api/
 
 # OSX
 .DS_Store
